@@ -4,18 +4,19 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import gov.anzong.androidnga.R;
-import sp.phone.http.bean.ThreadData;
-import sp.phone.http.bean.ThreadRowInfo;
+import gov.anzong.androidnga.base.util.ToastUtils;
 import sp.phone.common.UserManager;
 import sp.phone.common.UserManagerImpl;
-import sp.phone.param.ArticleListParam;
-import sp.phone.ui.fragment.ArticleListFragment;
 import sp.phone.http.OnHttpCallBack;
+import sp.phone.http.bean.ThreadData;
+import sp.phone.http.bean.ThreadRowInfo;
 import sp.phone.mvp.contract.ArticleListContract;
 import sp.phone.mvp.model.ArticleListModel;
+import sp.phone.param.ArticleListParam;
 import sp.phone.rxjava.BaseSubscriber;
 import sp.phone.rxjava.RxUtils;
 import sp.phone.task.LikeTask;
+import sp.phone.ui.fragment.ArticleListFragment;
 import sp.phone.util.FunctionUtils;
 import sp.phone.util.StringUtils;
 
@@ -27,6 +28,34 @@ public class ArticleListPresenter extends BasePresenter<ArticleListFragment, Art
 
     private LikeTask mLikeTask;
 
+    private ThreadData mThreadData;
+
+    private ArticleListParam mRequestParam;
+
+    private OnHttpCallBack<ThreadData> mDataCallBack = new OnHttpCallBack<ThreadData>() {
+        @Override
+        public void onError(String text) {
+            mBaseView.hideLoadingView();
+            mBaseView.setRefreshing(false);
+            mBaseView.showToast(text);
+        }
+
+        @Override
+        public void onSuccess(ThreadData data) {
+            mThreadData = data;
+            mBaseView.setRefreshing(false);
+            mBaseView.setData(data);
+            RxUtils.postDelay(300, new BaseSubscriber<Long>() {
+                @Override
+                public void onNext(Long aLong) {
+                    if (mBaseView != null) {
+                        mBaseView.hideLoadingView();
+                    }
+                }
+            });
+        }
+    };
+
     @Override
     protected ArticleListModel onCreateModel() {
         return new ArticleListModel();
@@ -35,28 +64,14 @@ public class ArticleListPresenter extends BasePresenter<ArticleListFragment, Art
     @Override
     public void loadPage(ArticleListParam param) {
         mBaseView.setRefreshing(true);
-        mBaseModel.loadPage(param, new OnHttpCallBack<ThreadData>() {
-            @Override
-            public void onError(String text) {
-                mBaseView.hideLoadingView();
-                mBaseView.setRefreshing(false);
-                mBaseView.showToast(text);
-            }
+        mBaseModel.loadPage(param, mDataCallBack);
+    }
 
-            @Override
-            public void onSuccess(ThreadData data) {
-                mBaseView.setRefreshing(false);
-                mBaseView.setData(data);
-                RxUtils.postDelay(300, new BaseSubscriber<Long>() {
-                    @Override
-                    public void onNext(Long aLong) {
-                        if (mBaseView != null) {
-                            mBaseView.hideLoadingView();
-                        }
-                    }
-                });
-            }
-        });
+    public ArticleListPresenter(ArticleListParam articleListParam) {
+        mRequestParam = articleListParam;
+    }
+
+    public ArticleListPresenter() {
     }
 
     @Override
@@ -135,7 +150,7 @@ public class ArticleListPresenter extends BasePresenter<ArticleListFragment, Art
         if (mLikeTask == null) {
             mLikeTask = new LikeTask();
         }
-        mLikeTask.execute(tid, pid, LikeTask.SUPPORT, data -> mBaseView.showToast(data));
+        mLikeTask.execute(tid, pid, LikeTask.SUPPORT, ToastUtils::success);
     }
 
     @Override
@@ -143,7 +158,7 @@ public class ArticleListPresenter extends BasePresenter<ArticleListFragment, Art
         if (mLikeTask == null) {
             mLikeTask = new LikeTask();
         }
-        mLikeTask.execute(tid, pid, LikeTask.OPPOSE, data -> mBaseView.showToast(data));
+        mLikeTask.execute(tid, pid, LikeTask.OPPOSE, ToastUtils::success);
     }
 
     @Override
@@ -197,5 +212,26 @@ public class ArticleListPresenter extends BasePresenter<ArticleListFragment, Art
         intent.putExtra("tid", tidStr);
         intent.putExtra("action", "reply");
         mBaseView.startPostActivity(intent);
+    }
+
+    @Override
+    public void cachePage() {
+        if (mThreadData != null) {
+            mBaseModel.cachePage(mRequestParam, mThreadData.getRawData());
+        }
+    }
+
+    @Override
+    public void loadCachePage() {
+
+    }
+
+    @Override
+    public void onViewCreated() {
+        if (mRequestParam != null && mRequestParam.loadCache) {
+            mBaseModel.loadCachePage(mRequestParam, mDataCallBack);
+        } else {
+            loadPage(mRequestParam);
+        }
     }
 }

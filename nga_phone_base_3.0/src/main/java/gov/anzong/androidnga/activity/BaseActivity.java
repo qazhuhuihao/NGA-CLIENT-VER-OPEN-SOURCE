@@ -2,27 +2,29 @@ package gov.anzong.androidnga.activity;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.app.AppCompatDelegate;
-import android.support.v7.widget.Toolbar;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.widget.Toolbar;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebView;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import com.justwen.androidnga.cloud.CloudServerManager;
 
 import gov.anzong.androidnga.R;
 import gov.anzong.androidnga.base.common.SwipeBackHelper;
 import gov.anzong.androidnga.base.util.ContextUtils;
+import gov.anzong.androidnga.base.util.PreferenceUtils;
+import gov.anzong.androidnga.base.util.ThreadUtils;
 import sp.phone.common.ApplicationContextHolder;
 import sp.phone.common.PhoneConfiguration;
-import sp.phone.common.PreferenceKey;
+import gov.anzong.androidnga.common.PreferenceKey;
 import sp.phone.theme.ThemeManager;
+import sp.phone.util.NLog;
 
 /**
  * Created by liuboyu on 16/6/28.
@@ -55,6 +57,14 @@ public abstract class BaseActivity extends AppCompatActivity {
 
         if (getResources().getBoolean(R.bool.night_mode) != ThemeManager.getInstance().isNightMode()) {
             new WebView(this);
+        }
+
+        try {
+            if (ThemeManager.getInstance().isNightMode()) {
+                getWindow().setNavigationBarColor(ContextUtils.getColor(R.color.background_color));
+            }
+        } catch (Exception e) {
+            NLog.e("set navigation bar color exception occur: " + e);
         }
     }
 
@@ -180,14 +190,24 @@ public abstract class BaseActivity extends AppCompatActivity {
     public boolean dispatchTouchEvent(MotionEvent ev) {
         try {
             return super.dispatchTouchEvent(ev);
-        } catch (IllegalArgumentException e) {
-            StringWriter writer = new StringWriter();
-            PrintWriter pr = new PrintWriter(writer);
-            e.printStackTrace(pr);
-            if (writer.toString().contains("SwipeBackLayout")) {
-                return false;
-            } else {
-                throw e;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        checkUpgrade();
+        super.onResume();
+    }
+
+    private void checkUpgrade() {
+        if (PreferenceUtils.getData(PreferenceKey.KEY_CHECK_UPGRADE_STATE, true)) {
+            long time = PreferenceUtils.getData(PreferenceKey.KEY_CHECK_UPGRADE_TIME, 0L);
+            if (System.currentTimeMillis() - time > 1000 * 60 * 60 * 24) {
+                CloudServerManager.checkUpgrade();
+                PreferenceUtils.putData(PreferenceKey.KEY_CHECK_UPGRADE_TIME, System.currentTimeMillis());
             }
         }
     }

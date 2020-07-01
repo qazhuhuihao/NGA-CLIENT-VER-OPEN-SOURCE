@@ -2,7 +2,7 @@ package sp.phone.ui.fragment;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +15,7 @@ import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 
 import gov.anzong.androidnga.R;
+import gov.anzong.androidnga.base.util.ToastUtils;
 import sp.phone.mvp.presenter.LoginPresenter;
 import sp.phone.util.StringUtils;
 
@@ -24,7 +25,7 @@ import sp.phone.util.StringUtils;
 
 public class LoginWebFragment extends BaseFragment {
 
-    private static final String URL_LOGIN = "https://bbs.nga.cn/nuke.php?__lib=login&__act=account&login";
+    private static final String URL_LOGIN = "https://ngabbs.com/nuke.php?__lib=login&__act=account&login";
 
     private static final int MAX_PROGRESS = 100;
 
@@ -38,6 +39,7 @@ public class LoginWebFragment extends BaseFragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         mLoginPresenter = new LoginPresenter();
         super.onCreate(savedInstanceState);
+        ToastUtils.info("不支持QQ和微博登录");
     }
 
     private class LoginWebChromeClient extends WebChromeClient {

@@ -2,7 +2,7 @@ package sp.phone.mvp.model.entity;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 public class Board implements Parcelable {
 
@@ -120,7 +120,11 @@ public class Board implements Parcelable {
     }
 
     public int getStid() {
-        return 0;
+        return mStd;
+    }
+
+    public void setStid(int std) {
+        mStd = std;
     }
 
     public BoardKey getBoardKey() {
